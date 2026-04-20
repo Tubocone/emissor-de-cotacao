@@ -28,7 +28,7 @@
       body {
         font-family: "Segoe UI", sans-serif;
         background-color: var(--fundo);
-        padding-top: 110px;
+        padding-top: 140px;
       }
 
       /* Cabeçalho Fixo na Tela */
@@ -37,17 +37,17 @@
         top: 0;
         left: 0;
         width: 100%;
-        height: 90px;
+        height: 120px; /* Aumentado */
         background: var(--azul-dark);
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 40px;
+        gap: 60px;
         z-index: 1000;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       }
       .fixed-header img {
-        max-height: 40px;
+        max-height: 70px;
         width: auto;
         filter: brightness(0) invert(1);
       }
@@ -269,10 +269,10 @@
               />
             </div>
             <div class="campo">
-              <label>UND:</label>
+              <label>Und:</label>
               <select id="temp-un">
                 <option value="KG">KG</option>
-                <option value="UN">UN</option>
+                <option value="UN">UND</option>
                 <option value="PÇS">PÇS</option>
               </select>
             </div>
@@ -335,8 +335,8 @@
               ><input type="text" id="prazo" class="valida-pdf" />
             </div>
             <div class="campo">
-              <label>Validade (Dias):</label
-              ><input type="text" id="validade" class="valida-pdf" />
+              <label>Validade da Cotação (Dias):</label>
+              <input type="text" id="validade" class="valida-pdf" />
             </div>
           </div>
           <div class="campo" style="margin-top: 15px">
@@ -545,9 +545,10 @@
                 rod: "Bezerros/PE",
               };
 
-        // Header
+        // --- CABEÇALHO AZUL ---
         doc.setFillColor(azulDark[0], azulDark[1], azulDark[2]);
         doc.rect(0, 0, 210, 35, "F");
+
         const logoData = await converterLogo(
           emissor === "tubocone" ? "logo_tubocone" : "logo_tubonord"
         );
@@ -558,7 +559,8 @@
           const prop = imgEl.naturalHeight / imgEl.naturalWidth;
           const w = 35;
           const h = w * prop;
-          doc.addImage(logoData, "PNG", 15, 5, w, h, undefined, "FAST"); // Y alterado para 5 conforme solicitado
+          // Posição Y ajustada para 5 para centralizar conforme seu teste anterior
+          doc.addImage(logoData, "PNG", 15, 5, w, h, undefined, "FAST");
         }
 
         doc.setTextColor(255);
@@ -569,7 +571,20 @@
         doc.setFont("helvetica", "normal");
         doc.text(`${info.e}\n${info.c}\n${info.f}`, 60, 20);
 
-        // Boxes Cliente/Fornecedor
+        // --- CORPO DO DOCUMENTO (DATA CORRIGIDA AQUI) ---
+        doc.setTextColor(azulDark[0], azulDark[1], azulDark[2]);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("COTAÇÃO DE PRODUTO", 15, 48);
+
+        // Inserindo a data atual formatada à direita
+        const dataAtual = new Date().toLocaleDateString("pt-BR");
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Emissão: ${dataAtual}`, 195, 48, { align: "right" });
+
+        // --- BOXES CLIENTE/FORNECEDOR ---
         doc.setFillColor(245, 248, 254);
         doc.rect(15, 55, 85, 25, "F");
         doc.setTextColor(150);
@@ -605,8 +620,8 @@
           74
         );
 
-        // Tabela Dinâmica
-        const valorOk = (t) => t && t.replace(/\D/g, "") > 0;
+        // --- TABELA DE PRODUTOS ---
+        const valorOk = (t) => t && t.toString().replace(/\D/g, "") > 0;
         const temCIF = produtosAdicionados.some((p) => valorOk(p.cif));
         const temFOB = produtosAdicionados.some((p) => valorOk(p.fob));
 
@@ -630,14 +645,20 @@
           theme: "grid",
         });
 
-        // Condições e Assinatura
+        // --- CONDIÇÕES E ASSINATURA ---
         let y = doc.lastAutoTable.finalY + 15;
-        const conds = ["PRAZO ENTREGA", "COND. PAGAMENTO", "VALIDADE"];
+
+        const conds = [
+          "PRAZO ENTREGA",
+          "COND. PAGAMENTO",
+          "VALIDADE DA COTAÇÃO",
+        ];
         const vals = [
           document.getElementById("prazo").value + " DIAS",
           document.getElementById("pagamento").value + " DIAS",
           document.getElementById("validade").value + " DIAS",
         ];
+
         for (let i = 0; i < 3; i++) {
           let x = 15 + i * 62;
           doc.setFillColor(232, 237, 247);
@@ -661,7 +682,7 @@
         doc.setFont("helvetica", "normal");
         doc.text("Responsável Comercial", 160, ySig + 5, { align: "center" });
 
-        // Rodapé
+        // --- RODAPÉ ---
         doc.setFillColor(azulDark[0], azulDark[1], azulDark[2]);
         doc.rect(0, 282, 210, 15, "F");
         doc.setTextColor(255);
