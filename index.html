@@ -114,15 +114,37 @@
         font-size: 13px;
       }
 
+      /* Estilo de borda GitHub com correção de layout */
       input,
       select,
       textarea {
-        width: 100%;
         padding: 12px;
-        border: 1px solid var(--borda);
-        border-radius: 8px;
-        font-size: 16px;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+        background-color: #ffffff;
+        width: 100%; /* Garante que ocupe o espaço do grid */
+        box-sizing: border-box; /* Impede que o padding "empurre" a borda para fora */
+      }
+
+      /* Efeito de foco azul */
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #0969da;
         outline: none;
+        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+      }
+
+      /* Ajuste para mobile (Garante que o grid vire uma coluna só) */
+      @media (max-width: 600px) {
+        .grid-campos {
+          grid-template-columns: 1fr !important;
+        }
+        body {
+          padding: 130px 10px 20px 10px; /* Mais espaço nas laterais no mobile */
+        }
       }
       .campo-vazio {
         border: 2px solid var(--erro) !important;
@@ -226,16 +248,33 @@
     <div class="container">
       <h2>Nova Cotação</h2>
 
-      <div class="campo">
-        <label>Empresa Emissora:</label>
+      <div class="campo" style="grid-column: span 2">
+        <label>Razão Social de Faturamento:</label>
         <select
-          id="empresa_emissora"
+          id="razao_faturamento"
           class="valida-pdf"
-          onchange="ajustarLogosHeader()"
+          onchange="atualizarInterface()"
         >
-          <option value="">-- SELECIONE A EMPRESA --</option>
-          <option value="tubocone">TUBOCONE INDUSTRIA E COMERCIO</option>
-          <option value="tubonord">TUBONORD INDUSTRIA E COMERCIO</option>
+          <option value="">Selecione a unidade de faturamento...</option>
+          <optgroup label="Unidade Ceará (Tubocone)">
+            <option value="tubotecnico">
+              TUBOTÉCNICO INDUSTRIA E COMERCIO DE EMBALAGENS LTDA ME
+            </option>
+            <option value="tubocone">
+              TUBOCONE INDUSTRIA E COMERCIO DE EMBALAGENS EIRELI - EPP
+            </option>
+            <option value="palmeiras_filial">
+              PALMEIRAS FABRICAÇÃO DE EMBALAGENS LTDA (Filial)
+            </option>
+          </optgroup>
+          <optgroup label="Unidade Pernambuco (Tubonord)">
+            <option value="tubonord">
+              TUBONORD INDUSTRIA E COMERCIO DE EMBALAGENS LTDA
+            </option>
+            <option value="palmeiras_matriz">
+              PALMEIRAS FABRICAÇÃO DE EMBALAGENS LTDA (Matriz)
+            </option>
+          </optgroup>
         </select>
       </div>
 
@@ -399,6 +438,74 @@
     />
 
     <script>
+      const faturamentos = {
+        tubotecnico: {
+          unidade: "tubocone",
+          nome: "TUBOTÉCNICO INDUSTRIA E COMERCIO DE EMBALAGENS LTDA ME",
+          cnpj: "03.466.523/0001-16",
+          endereco: "Av. Pres. Castelo Branco, 2010 – BR 116 KM 37",
+          cidade: "Catole – CEP 62887-285 – Horizonte/CE",
+          fone: "(85) 3336-1414",
+          rod: "Horizonte/CE",
+        },
+        tubocone: {
+          unidade: "tubocone",
+          nome: "TUBOCONE INDUSTRIA E COMERCIO DE EMBALAGENS EIRELI - EPP",
+          cnpj: "06.557.482/0001-61",
+          endereco: "Av. Pres. Castelo Branco, 2010 – BR 116 KM 37",
+          cidade: "Catole – CEP 62887-285 – Horizonte/CE",
+          fone: "(85) 3336-1414",
+          rod: "Horizonte/CE",
+        },
+        palmeiras_filial: {
+          unidade: "tubocone",
+          nome: "PALMEIRAS FABRICAÇÃO DE EMBALAGENS LTDA",
+          subnome: "Filial",
+          cnpj: "41.373.639/0002-80",
+          endereco: "Av. Pres. Castelo Branco, 2010 – BR 116 KM 37",
+          cidade: "Catole – CEP 62887-285 – Horizonte/CE",
+          fone: "(85) 3336-1414",
+          rod: "Horizonte/CE",
+        },
+        tubonord: {
+          unidade: "tubonord",
+          nome: "TUBONORD INDUSTRIA E COMERCIO DE EMBALAGENS LTDA",
+          cnpj: "38.318.624/0001-24",
+          endereco: "Av. Dr. Lucas Soares Cardoso, 1335 – Distrito Industrial",
+          cidade: "Bezerros/PE – CEP: 55660-000",
+          fone: "(85) 99401-3853",
+          rod: "Bezerros/PE",
+        },
+        palmeiras_matriz: {
+          unidade: "tubonord",
+          nome: "PALMEIRAS FABRICAÇÃO DE EMBALAGENS LTDA",
+          subnome: "Matriz",
+          cnpj: "41.373.639/0001-08",
+          endereco: "Av. Dr. Lucas Soares Cardoso, 1335 – Distrito Industrial",
+          cidade: "Bezerros/PE – CEP: 55660-000",
+          fone: "(85) 99401-3853",
+          rod: "Bezerros/PE",
+        },
+      };
+
+      // Esta função faz a logo da Unidade selecionada ficar nítida e a outra transparente
+      function atualizarInterface() {
+        const valor = document.getElementById("razao_faturamento").value;
+        const logoC = document.getElementById("header_logo_tubocone");
+        const logoN = document.getElementById("header_logo_tubonord");
+
+        if (!valor) return;
+        const unid = faturamentos[valor].unidade;
+
+        if (unid === "tubocone") {
+          logoC.style.filter = "brightness(0) invert(1) opacity(1)";
+          logoN.style.filter = "brightness(0) invert(1) opacity(0.2)";
+        } else {
+          logoN.style.filter = "brightness(0) invert(1) opacity(1)";
+          logoC.style.filter = "brightness(0) invert(1) opacity(0.2)";
+        }
+      }
+
       let produtosAdicionados = [];
       let tsInstance = null;
       let indexSendoEditado = null; // Controle de edição
@@ -559,57 +666,52 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF("p", "mm", "a4", true);
         const azulDark = [30, 58, 110];
-        const azulAccent = [61, 111, 196];
-        const emissor = document.getElementById("empresa_emissora").value;
 
-        const info =
-          emissor === "tubocone"
-            ? {
-                n: "TUBOCONE INDÚSTRIA E COMÉRCIO DE EMBALAGENS EIRELI – EPP",
-                e: "Av. Pres. Castelo Branco, 2010 – BR 116 KM 37",
-                c: "Catole – CEP 62887-285 – Horizonte/CE",
-                f: "Fone: (85) 3336-1414",
-                rod: "Horizonte/CE",
-              }
-            : {
-                n: "TUBONORD INDUSTRIA E COMERCIO DE EMBALAGENS LTDA",
-                e: "Av. Dr. Lucas Soares Cardoso, 1335 – Distrito Industrial",
-                c: "Bezerros/PE – CEP: 55660-000",
-                f: "Fone: (85) 99401-3853",
-                rod: "Bezerros/PE",
-              };
+        const selectRazao = document.getElementById("razao_faturamento");
+        const chaveRazao = selectRazao.value;
+
+        if (!chaveRazao) {
+          alert(
+            "Por favor, selecione uma Razão Social de Faturamento antes de gerar o PDF."
+          );
+          return;
+        }
+
+        const dados = faturamentos[chaveRazao];
 
         // --- CABEÇALHO AZUL ---
         doc.setFillColor(azulDark[0], azulDark[1], azulDark[2]);
         doc.rect(0, 0, 210, 35, "F");
 
-        const logoData = await converterLogo(
-          emissor === "tubocone" ? "logo_tubocone" : "logo_tubonord"
-        );
+        // Mapeamento da logo baseada na unidade vinculada à Razão Social
+        const logoId =
+          dados.unidade === "tubocone" ? "logo_tubocone" : "logo_tubonord";
+        const logoData = await converterLogo(logoId);
+
         if (logoData) {
-          const imgEl = document.getElementById(
-            emissor === "tubocone" ? "logo_tubocone" : "logo_tubonord"
-          );
-          const prop = imgEl.naturalHeight / imgEl.naturalWidth;
-          const w = 35;
-          const h = w * prop;
-          // Posição Y ajustada para 5 para centralizar conforme seu teste anterior
-          doc.addImage(logoData, "PNG", 15, 5, w, h, undefined, "FAST");
+          doc.addImage(logoData, "PNG", 15, 5, 35, 25, undefined, "FAST");
         }
+
+        // Título do cabeçalho baseado na unidade (Tubocone ou Tubonord)
+        const tituloUnidade =
+          dados.unidade === "tubocone"
+            ? "TUBOCONE INDÚSTRIA E COMÉRCIO DE EMBALAGENS EIRELI – EPP"
+            : "TUBONORD INDUSTRIA E COMERCIO DE EMBALAGENS LTDA";
 
         doc.setTextColor(255);
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.text(info.n, 60, 15);
+        doc.text(tituloUnidade, 60, 15);
+
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
-        doc.text(`${info.e}\n${info.c}\n${info.f}`, 60, 20);
+        doc.text(`${dados.endereco}\n${dados.cidade}\n${dados.fone}`, 60, 20);
 
-        // --- CORPO DO DOCUMENTO (DATA CORRIGIDA AQUI) ---
+        // --- CORPO DO DOCUMENTO ---
         doc.setTextColor(azulDark[0], azulDark[1], azulDark[2]);
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text("COTAÇÃO DE PRODUTO", 15, 48);
+        doc.text("COTAÇÃO DE PRODUTOS", 15, 48);
 
         // Inserindo a data atual formatada à direita
         const dataAtual = new Date().toLocaleDateString("pt-BR");
@@ -618,19 +720,25 @@
         doc.setFont("helvetica", "normal");
         doc.text(`Emissão: ${dataAtual}`, 195, 48, { align: "right" });
 
-        // --- BOXES CLIENTE/FORNECEDOR ---
+        // --- BOXES CLIENTE / FORNECEDOR ---
+        // Box Fornecedor (Esquerda)
         doc.setFillColor(245, 248, 254);
         doc.rect(15, 55, 85, 25, "F");
         doc.setTextColor(150);
         doc.setFontSize(7);
-        doc.text("FORNECEDOR", 18, 59);
+        doc.text("RAZÃO SOCIAL DE FATURAMENTO (FORNECEDOR)", 18, 59);
+
         doc.setTextColor(0);
         doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
-        doc.text(info.n, 18, 64, { maxWidth: 80 });
+        const nomeExibir = dados.subnome
+          ? `${dados.nome} (${dados.subnome})`
+          : dados.nome;
+        doc.text(nomeExibir, 18, 64, { maxWidth: 80 });
         doc.setFont("helvetica", "normal");
-        doc.text(info.f, 18, 76);
+        doc.text("CNPJ: " + dados.cnpj, 18, 75);
 
+        // Box Cliente (Direita)
         doc.setFillColor(250, 250, 250);
         doc.rect(110, 55, 85, 25, "F");
         doc.setTextColor(150);
@@ -705,7 +813,7 @@
           doc.text(vals[i], x + 5, y + 11);
         }
 
-        // --- CAMPO DE OBSERVAÇÕES (SEMPRE EXIBIDO) ---
+        // --- CAMPO DE OBSERVAÇÕES ---
         y += 25; // Espaçamento fixo após os cards
         const observacaoTexto = document.getElementById("obs").value.trim();
 
@@ -729,7 +837,7 @@
           doc.text(linhasObs, 18, y + 10);
         }
 
-        // --- ASSINATURA (Posição ajustada) ---
+        // --- ASSINATURA ---
         let ySig = y + 40; // Mantém a assinatura abaixo do quadro de observações
         const resp = document
           .getElementById("resp_comercial")
@@ -748,9 +856,14 @@
         doc.rect(0, 282, 210, 15, "F");
         doc.setTextColor(255);
         doc.setFontSize(7);
-        doc.text(`${info.n} | ${info.rod}`, 105, 290, { align: "center" });
+        // Usando os dados do objeto faturamentos
+        doc.text(`${dados.nome} | ${dados.rod}`, 105, 290, { align: "center" });
 
-        doc.save(`COTACAO_${document.getElementById("cliente").value}.pdf`);
+        doc.save(
+          `COTACAO_${document
+            .getElementById("cliente")
+            .value.toUpperCase()}.pdf`
+        );
       }
 
       document.addEventListener("input", (e) => {
