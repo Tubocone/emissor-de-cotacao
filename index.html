@@ -324,6 +324,30 @@
       </div>
     </div>
   </div>
+  
+  <!-- Modal para Criar Novo Produto na Hora -->
+  <div id="newProductModal" class="hidden fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-3xl shadow-2xl flex flex-col gap-4 max-w-sm w-full border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Cadastrar Novo Produto</h3>
+        <button type="button" id="btnCloseNewProdModal" class="text-slate-400 hover:text-red-500 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="space-y-2">
+        <label class="text-[10px] font-bold text-slate-400 uppercase">Descrição do Produto</label>
+        <input id="newProdNameInput" placeholder="Ex: BOBINA DE PAPEL" class="w-full p-3 border-2 border-primary/30 rounded-xl focus:ring-4 focus:ring-primary/10 outline-none transition-all text-sm uppercase" />
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" id="btnCancelNewProd" class="flex-1 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors text-xs">
+          Cancelar
+        </button>
+        <button type="button" id="btnSaveNewProd" class="flex-1 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all text-xs shadow-md">
+          Salvar Produto
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- SCRIPT COMPLETO -->
   <script>
@@ -339,6 +363,7 @@
       "TUBO PLÁSTICO",
 	  "APARAS",
 	  "PAPEL",
+	  "BARRICA",
     ];
 
     const FATURAMENTOS = {
@@ -409,12 +434,79 @@
     const loadingModal = document.getElementById('loadingModal');
     const successModal = document.getElementById('successModal');
 
-    // Popula dropdown de descrições
-    PRODUCT_DESCRIPTIONS.forEach(desc => {
-      const opt = document.createElement('option');
-      opt.value = desc;
-      opt.textContent = desc;
-      prodDescSelect.appendChild(opt);
+    // --- ELEMENTOS E FUNÇÕES PARA NOVO PRODUTO NO SELECT ---
+    const newProductModal = document.getElementById('newProductModal');
+    const newProdNameInput = document.getElementById('newProdNameInput');
+    const btnSaveNewProd = document.getElementById('btnSaveNewProd');
+    const btnCancelNewProd = document.getElementById('btnCancelNewProd');
+    const btnCloseNewProdModal = document.getElementById('btnCloseNewProdModal');
+
+    // Popula o dropdown de descrições dinamicamente
+    function populateProductSelect(selectedVal = "") {
+      prodDescSelect.innerHTML = '<option value="">Selecione um produto...</option>';
+      
+      // Adiciona todos os produtos da lista (já cadastrados e novos)
+      PRODUCT_DESCRIPTIONS.forEach(desc => {
+        const opt = document.createElement('option');
+        opt.value = desc;
+        opt.textContent = desc;
+        prodDescSelect.appendChild(opt);
+      });
+
+      // Adiciona a opção de criar novo produto no FINAL da lista
+      const optCreate = document.createElement('option');
+      optCreate.value = "__ADD_NEW__";
+      optCreate.textContent = "+ Criar novo produto para essa cotação...";
+      optCreate.className = "font-bold text-primary";
+      prodDescSelect.appendChild(optCreate);
+
+      if (selectedVal) {
+        prodDescSelect.value = selectedVal;
+      }
+    }
+
+    // Inicializa a lista
+    populateProductSelect();
+
+    // Evento ao mudar a seleção do produto
+    prodDescSelect.addEventListener('change', (e) => {
+      if (e.target.value === "__ADD_NEW__") {
+        // Limpa e abre o modal de criação
+        newProdNameInput.value = "";
+        newProductModal.classList.remove('hidden');
+        prodDescSelect.value = ""; // Reseta a seleção temporariamente
+      }
+    });
+
+    // Função para fechar o modal de novo produto
+    function closeNewProductModal() {
+      newProductModal.classList.add('hidden');
+      newProdNameInput.value = "";
+    }
+
+    btnCloseNewProdModal.addEventListener('click', closeNewProductModal);
+    btnCancelNewProd.addEventListener('click', closeNewProductModal);
+
+    // Salva o novo produto digitado
+    btnSaveNewProd.addEventListener('click', () => {
+      const rawValue = newProdNameInput.value.trim();
+
+      if (!rawValue) {
+        alert("Digite o nome do produto!");
+        return;
+      }
+
+      // Converte a descrição para MAIÚSCULA
+      const formattedValue = rawValue.toUpperCase();
+
+      // Verifica se o produto já existe na lista
+      if (!PRODUCT_DESCRIPTIONS.includes(formattedValue)) {
+        PRODUCT_DESCRIPTIONS.push(formattedValue);
+      }
+
+      // Atualiza o select colocando o novo produto acima da opção de criar novo
+      populateProductSelect(formattedValue);
+      closeNewProductModal();
     });
 
     // --- EVENTOS DE INTERFACE ---
@@ -669,19 +761,46 @@
           doc.setFontSize(9);
           doc.text("SOLICITADO POR: " + formData.att.toUpperCase(), 113, 76);
 
-          // Tabela
-          const cols = ["PRODUTO", "MEDIDAS", "QTD", "UND", "IPI", "ICMS", "PREÇO UNITÁRIO CIF", "PREÇO UNITÁRIO FOB"];
-          const rows = formData.produtos.map(p => [
-            p.desc,
-            p.med,
-            p.qtd,
-            p.un === "pcs" ? "PC" : p.un,
-            p.ipi ? p.ipi + "%" : "---",
-            p.icms ? p.icms + "%" : "---",
-            p.cif ? "R$ " + p.cif : "---",
-            p.fob ? "R$ " + p.fob : "---"
-          ]);
+          // Tabela (Montagem Dinâmica de Colunas)
+          // 1. Verifica se ao menos um produto possui preenchimento para IPI, CIF e FOB
+          const temIpi = formData.produtos.some(p => p.ipi && p.ipi !== "-" && p.ipi !== "0" && p.ipi.trim() !== "");
+          const temCif = formData.produtos.some(p => p.cif && p.cif !== "-" && p.cif !== "0" && p.cif.trim() !== "");
+          const temFob = formData.produtos.some(p => p.fob && p.fob !== "-" && p.fob !== "0" && p.fob.trim() !== "");
 
+          // 2. Monta o cabeçalho (cols) apenas com as colunas necessárias
+          const cols = ["PRODUTO", "MEDIDAS", "QTD", "UND"];
+          if (temIpi) cols.push("IPI");
+          cols.push("ICMS");
+          if (temCif) cols.push("PREÇO UNITÁRIO CIF");
+          if (temFob) cols.push("PREÇO UNITÁRIO FOB");
+
+          // 3. Monta as linhas (rows) acompanhando a ordem dinâmica do cabeçalho
+          const rows = formData.produtos.map(p => {
+            const row = [
+              p.desc,
+              p.med,
+              p.qtd,
+              p.un === "pcs" ? "PC" : p.un
+            ];
+
+            if (temIpi) {
+              row.push(p.ipi && p.ipi !== "-" ? p.ipi + "%" : "-");
+            }
+
+            row.push(p.icms ? p.icms + "%" : "---");
+
+            if (temCif) {
+              row.push(p.cif && p.cif !== "-" ? "R$ " + p.cif : "-");
+            }
+
+            if (temFob) {
+              row.push(p.fob && p.fob !== "-" ? "R$ " + p.fob : "-");
+            }
+
+            return row;
+          });
+
+          // 4. Renderiza a tabela no PDF
           doc.autoTable({
             startY: 90,
             head: [cols],
